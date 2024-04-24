@@ -1,6 +1,9 @@
 # Messaging App
 
 This is a simple messaging app built using React for the front end and Node.js with WebSocket for real-time communication on the backend. The app allows users to send messages to each other in real-time over a WebSocket connection.
+if you have multiple pc and you want to share some messages between them you can try this http://192.168.1.215:3000/
+we know react can open project  on multiple device if they are connected through the same network via this link i created a messaging app
+
 
 ## Features
 
