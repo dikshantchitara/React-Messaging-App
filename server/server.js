@@ -15,14 +15,10 @@ wss.on("connection", function connection(ws) {
   ws.on("message", function incoming(message) {
     console.log("Received message:", message);
 
-    // Convert the message to a string if it's not already
-    const stringMessage =
-      typeof message === "string" ? message : message.toString();
-
-    // Broadcast the string message to all clients
+    // Broadcast the message to all clients
     clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        client.send(stringMessage);
+        client.send(message);
       }
     });
 
@@ -35,7 +31,6 @@ wss.on("connection", function connection(ws) {
     console.log("Client disconnected");
   });
 });
-
 
 server.listen(3001, function () {
   console.log("Server started on port 3001");
