@@ -4,6 +4,7 @@ import "./App.css";
 const App = () => {
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
+  const [fileInput, setFileInput] = useState(null);
   const [ws, setWs] = useState(null);
 
   useEffect(() => {
@@ -14,22 +15,14 @@ const App = () => {
       setWs(socket);
     };
 
-  socket.onmessage = (event) => {
-    const receivedMessage = event.data;
-    if (receivedMessage instanceof Blob) {
-     
-      const reader = new FileReader();
-      reader.onload = function () {
-        const messageText = reader.result;
-        setMessages((prevMessages) => [...prevMessages, messageText]);
-      };
-      reader.readAsText(receivedMessage);
-    } else if (typeof receivedMessage === "string") {
-      setMessages((prevMessages) => [...prevMessages, receivedMessage]);
-    } else {
-      console.log("Received unsupported message format:", receivedMessage);
-    }
-  };
+    socket.onmessage = (event) => {
+      const receivedMessage = event.data;
+      if (typeof receivedMessage === "string") {
+        setMessages((prevMessages) => [...prevMessages, receivedMessage]);
+      } else {
+        convertBlobToText(receivedMessage);
+      }
+    };
 
     socket.onerror = (error) => {
       console.error("WebSocket error:", error);
@@ -46,12 +39,39 @@ const App = () => {
     setMessageInput(event.target.value);
   };
 
+  const handleFileChange = (event) => {
+    setFileInput(event.target.files[0]);
+  };
+
   const sendMessage = () => {
-    if (ws && messageInput.trim() !== "") {
-      const message = messageInput.trim();
-      ws.send(message);
-      setMessageInput("");
+    if (ws) {
+      if (messageInput.trim() !== "" || fileInput) {
+        if (messageInput.trim() !== "") {
+          // Send text message
+          ws.send(messageInput.trim());
+          setMessageInput("");
+        }
+        if (fileInput) {
+          // Read file data and send as base64 encoded string
+          const reader = new FileReader();
+          reader.onload = function () {
+            const fileData = reader.result.split(",")[1]; // Remove data URI prefix
+            ws.send(fileData);
+          };
+          reader.readAsDataURL(fileInput);
+          setFileInput(null);
+        }
+      }
     }
+  };
+
+  const convertBlobToText = (blob) => {
+    const reader = new FileReader();
+    reader.onload = function () {
+      const messageText = reader.result;
+      setMessages((prevMessages) => [...prevMessages, messageText]);
+    };
+    reader.readAsText(blob);
   };
 
   return (
@@ -60,11 +80,7 @@ const App = () => {
       <div className="message-container">
         {messages.map((message, index) => (
           <div key={index} className="message">
-            {typeof message === "string" ? (
-              message
-            ) : (
-              <span>Received non-string message</span>
-            )}
+            {message}
           </div>
         ))}
       </div>
@@ -74,6 +90,11 @@ const App = () => {
           value={messageInput}
           onChange={handleMessageChange}
           placeholder="Type your message..."
+        />
+        <input
+          type="file"
+          onChange={handleFileChange}
+          accept=".txt,.pdf,.doc,.docx,.jpg,.jpeg,.png"
         />
         <button onClick={sendMessage}>Send</button>
       </div>
