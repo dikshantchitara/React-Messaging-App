@@ -18,9 +18,25 @@ const App = () => {
     socket.onmessage = (event) => {
       const receivedMessage = event.data;
       if (typeof receivedMessage === "string") {
-        setMessages((prevMessages) => [...prevMessages, receivedMessage]);
-      } else {
-        convertBlobToText(receivedMessage);
+        // Received message is text
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "text", data: receivedMessage },
+        ]);
+      } else if (receivedMessage instanceof Blob) {
+        // Received message is a file
+        const reader = new FileReader();
+        reader.onload = function () {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              type: "file",
+              data: reader.result,
+              name: fileInput ? fileInput.name : "",
+            },
+          ]);
+        };
+        reader.readAsDataURL(receivedMessage);
       }
     };
 
@@ -33,7 +49,7 @@ const App = () => {
         socket.close();
       }
     };
-  }, []);
+  }, [fileInput]);
 
   const handleMessageChange = (event) => {
     setMessageInput(event.target.value);
@@ -45,33 +61,17 @@ const App = () => {
 
   const sendMessage = () => {
     if (ws) {
-      if (messageInput.trim() !== "" || fileInput) {
-        if (messageInput.trim() !== "") {
-          // Send text message
-          ws.send(messageInput.trim());
-          setMessageInput("");
-        }
-        if (fileInput) {
-          // Read file data and send as base64 encoded string
-          const reader = new FileReader();
-          reader.onload = function () {
-            const fileData = reader.result.split(",")[1]; // Remove data URI prefix
-            ws.send(fileData);
-          };
-          reader.readAsDataURL(fileInput);
-          setFileInput(null);
-        }
+      if (messageInput.trim() !== "") {
+        // Send text message
+        ws.send(messageInput.trim());
+        setMessageInput("");
+      }
+      if (fileInput) {
+        // Send file data
+        ws.send(fileInput);
+        setFileInput(null);
       }
     }
-  };
-
-  const convertBlobToText = (blob) => {
-    const reader = new FileReader();
-    reader.onload = function () {
-      const messageText = reader.result;
-      setMessages((prevMessages) => [...prevMessages, messageText]);
-    };
-    reader.readAsText(blob);
   };
 
   return (
@@ -80,7 +80,16 @@ const App = () => {
       <div className="message-container">
         {messages.map((message, index) => (
           <div key={index} className="message">
-            {message}
+            {message.type === "text" ? (
+              <span>{message.data}</span>
+            ) : (
+              <div>
+                <img src={message.data} alt="Received File" />
+                <a href={message.data} download={message.name}>
+                  Download
+                </a>
+              </div>
+            )}
           </div>
         ))}
       </div>
