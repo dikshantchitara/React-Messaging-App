@@ -16,8 +16,6 @@ const App = () => {
 
   socket.onmessage = (event) => {
     const receivedMessage = event.data;
-
- 
     if (receivedMessage instanceof Blob) {
      
       const reader = new FileReader();
