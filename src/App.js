@@ -80,9 +80,8 @@ const App = () => {
       <div className="message-container">
         {messages.map((message, index) => (
           <div key={index} className="message">
-            {message.type === "text" ? (
-              <span>{message.data}</span>
-            ) : (
+            {message.type === "text" && <span>{message.data}</span>}
+            {message.type === "file" && (
               <div>
                 <img src={message.data} alt="Received File" />
                 <a href={message.data} download={message.name}>
